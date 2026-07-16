@@ -1,0 +1,17 @@
+/build/
+/generated_diameter/
+/generated_quick/
+/generated_reproduction/
+/logs/
+/release/
+
+/paper/*.aux
+/paper/*.bbl
+/paper/*.blg
+/paper/*.log
+/paper/*.out
+/paper/*.pdf
+/paper/*.toc
+
+__pycache__/
+*.py[cod]

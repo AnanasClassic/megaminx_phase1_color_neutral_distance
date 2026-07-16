@@ -1,0 +1,8 @@
+{
+  "coordinate_vertices": 11692800,
+  "spatial_automorphisms": 120,
+  "positional_roots": 81200,
+  "orbit_representatives": 708,
+  "eccentricity_histogram": {"10": 637, "11": 71},
+  "diameter": 11
+}

@@ -1,0 +1,21 @@
+{
+  "implementation": "SymPy Schreier-Sims on 120 oriented cubie-position states",
+  "generator_orders": [
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5
+  ],
+  "computed_group_order": 100669616553523347122516032313645505168688116411019768627200000000000,
+  "expected_invariant_space_order": 100669616553523347122516032313645505168688116411019768627200000000000,
+  "orders_match": true,
+  "witness_is_member": true
+}
