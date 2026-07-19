@@ -66,6 +66,9 @@ Botz developed and published a computational Megaminx solver based on this appro
 \]
 The last term comes from Whitmore's reported two-generator computation, which Botz did not independently reproduce in the thesis, so $116$ was a conditional, publicly reported face-turn bound~\cite{botz-software,botz-116}.  A forum exchange briefly suggested $117$ because one displayed table appeared to reach depth $14$; Botz later clarified that the duplicated rows were a transcription error and that the table ended at $13$, consistently with the thesis~\cite{botz-116-correction}.  Rokicki later reported $24$-move solutions for all $16$ distance-$26$ two-generator positions after admitting a third face.  Since distance-$25$ positions remained, this reduced the last-phase guarantee from $26$ to $25$ and the total from $116$ to $115$~\cite{rokicki-115}.  He then reported that all $7{,}595$ distance-$25$ positions, reduced to $1{,}199$ representatives by symmetry and inversion, are solvable in at most $24$ moves; this reduced the last-phase guarantee to $24$ and the total to $114$~\cite{rokicki-114}.  Botz later identified $114$ as the improved value~\cite{botz-114}.  These announcements are currently the public record of that bound rather than a refereed proof.
 
+\paragraph{Relation to prior computational work.}
+Twisty-puzzle state spaces provide concrete applications of permutation groups and their associated state graphs.  Joyner gives a systematic group-theoretic treatment of the Rubik's Cube and related puzzles, while Xu develops the corresponding group model for the Megaminx~\cite{joyner2008,xu2018}.  Exact and certified move bounds for the Rubik's Cube supply the closest methodological precedents.  Kunkle and Cooperman proved a $26$-move upper bound by large-scale coset computation, while Rokicki, Kociemba, Davidson, and Dethridge subsequently established the exact diameter $20$ using subgroup decomposition, symmetry reduction, and exhaustive search~\cite{kunkle2007,rokicki2013}.  The fixed-target table used here is also an instance of a pattern database: exact distances are stored after retaining only a selected set of pieces, as in the optimal-search work of Korf and the general formulation of Culberson and Schaeffer~\cite{korf1997,culberson1998}.  The distinctive issue in the present proof is not another single-target graph search, but the compatibility of twenty overlapping quotient coordinates selected adaptively.
+
 This paper isolates and certifies one further improvement.  The original first phase chooses a fixed corner and solves the corner piece together with its three incident edges.  A human solver would naturally choose the most favorable starting corner.  We formalize that freedom and prove that it lowers the worst-case first-phase cost from $10$ to exactly $9$.
 
 The contribution is deliberately narrow:
@@ -157,15 +160,12 @@ even though the solved coordinate has eccentricity $10$.  The computation normal
     \fill[white] (i\i) circle (2.2pt);
     \draw (i\i) circle (2.2pt);
   }
-  \draw[very thick] (o0)--(o1);
-  \draw[very thick] (o0)--(o9);
-  \draw[very thick] (o0)--(i0);
+  \draw[very thick] (o0)--node[midway,above,sloped] {$e_1$} (o1);
+  \draw[very thick] (o0)--node[midway,above,sloped] {$e_2$} (o9);
+  \draw[very thick] (o0)--node[midway,right] {$e_3$} (i0);
   \fill (o0) circle (3.3pt) node[above=3pt] {$v$};
-  \node at (1.95,2.98) {$e_1$};
-  \node at (-1.95,2.98) {$e_2$};
-  \node at (0.32,2.1) {$e_3$};
 \end{tikzpicture}
-\caption{The dodecahedral corner-edge incidence graph.  Each of its $20$ vertices defines a possible first-block target: one corner $v$ and its three incident edges.}
+\caption{The dodecahedral graph, or $1$-skeleton of the dodecahedron.  Graph vertices represent corner positions and graph edges represent edge positions.  The bold three-edge star consists of a corner $v$ and its incident edges $e_1,e_2,e_3$, hence one first-block target; the $20$ choices of $v$ give the $20$ possible targets.}
 \label{fig:dodecahedral-graph}
 \end{figure}
 
@@ -185,7 +185,7 @@ where the maximum ranges over reachable full Megaminx states.
 
 Since the solved coordinate has eccentricity $10$ for every fixed target, trivially $\DCN\le10$.  The issue is whether a full state can project to a depth-$10$ coordinate for all $20$ targets simultaneously.
 
-\section{Upper bound: no simultaneous depth-$10$ state}
+\section{Upper bound: no simultaneous depth-10 state}
 
 For each target $v$, let $A_v\subset X_v$ denote its $159$ depth-$10$ coordinates.  Suppose for contradiction that a reachable full state $g$ satisfies $d_v(g)=10$ for every $v$.  Then
 \[
@@ -195,18 +195,71 @@ We now discard information and solve a relaxed compatibility problem.
 
 \subsection{Edge-signature relaxation}
 
-Project each element of $A_v$ onto the positions and orientations of the three target edges incident with $v$, forgetting the target corner entirely.  Although $|A_v|=159$, this projection has only $80$ distinct edge signatures for every target.
+We identify each target piece with its home position in the solved labeling, so a graph edge in \cref{fig:dodecahedral-graph} also names the corresponding target edge piece.  Let $E$ be the set of $30$ edge pieces, let $P_E=\{0,\ldots,29\}$ be the set of edge positions, and let $E(v)\subset E$ be the three target edges incident with $v$.  Forgetting the target corner defines the projection
+\[
+\sigma_v:A_v\longrightarrow
+   \bigl(P_E\times\mathbb Z/2\mathbb Z\bigr)^{E(v)},
+\]
+where $\sigma_v(x)(e)$ is the position and orientation assigned to edge piece $e$ by the local coordinate $x$.  Its image
+\[
+S_v=\sigma_v(A_v)
+\]
+contains exactly $80$ distinct \emph{edge signatures} for every target $v$, although $|A_v|=159$.
 
-Every physical target edge belongs to exactly two target blocks, one at each endpoint of the edge in \cref{fig:dodecahedral-graph}.  A globally consistent selection of one signature per block must satisfy:
+The relaxed CSP has one variable $s_v\in S_v$ for each of the $20$ targets.  Every physical target edge belongs to exactly two target blocks, one at each endpoint of the corresponding graph edge in \cref{fig:dodecahedral-graph}.  A selection $(s_v)_{v\in V}$ is accepted precisely when:
 \begin{enumerate}
-  \item the two endpoint blocks assign the same position and orientation to their shared target edge;
-  \item the $30$ target edge pieces occupy $30$ distinct positions.
+  \item for every graph edge $e=uv$, the endpoint signatures agree,
+  \[
+  s_u(e)=s_v(e);
+  \]
+  \item the position components assigned to the $30$ edge pieces are pairwise distinct, and hence form a permutation of $P_E$.
 \end{enumerate}
 We impose no corner constraints and no reachability constraints.  Thus every hypothetical Megaminx state whose $20$ projections all have depth $10$ gives a solution of this relaxed constraint system, but the converse need not hold.
 
+\begin{lemma}[Soundness of the relaxation]\label{lem:relaxation-sound}
+If a full Megaminx state $g$ satisfies $d_v(g)=10$ for every target $v$, then the signatures $s_v=\sigma_v(q_v(g))$ form a solution of the relaxed CSP.
+\end{lemma}
+\begin{proof}
+The depth assumption gives $q_v(g)\in A_v$ and hence $s_v\in S_v$.  A physical edge has one position and orientation in the full state, independently of which endpoint block observes it, so the two signatures containing a shared edge agree.  Finally, the full edge assignment is a permutation of the $30$ edge positions.  Both CSP constraints therefore hold.
+\end{proof}
+
 \subsection{Exhaustive enumeration}
 
-Two independent implementations enumerate the relaxation.  The Python implementation uses arc consistency, singleton propagation for the global all-different constraint, and minimum-remaining-values branching.  The C++ implementation performs a separate block-domain backtracking search with dynamic minimum-domain selection and explicit global edge-position ownership.  They visit $145$ and $1{,}015$ search nodes respectively and return exactly the same five configurations.
+The exhaustive search maintains a partial choice of block signatures, the position and orientation already assigned to each shared edge, and the owner of each occupied edge position.  A candidate signature is viable exactly when it agrees with every previously assigned shared edge and does not use a position owned by a different edge.  The direct backtracking implementation is summarized below.
+
+\begin{lstlisting}
+Search(partial assignment):
+  if all 20 blocks are assigned:
+      output the induced edge assignment; return
+  choose an unassigned block with the fewest viable signatures
+  if that block has no viable signature: return
+  for every viable signature of that block:
+      assign it; Search(partial assignment); undo it
+\end{lstlisting}
+
+\begin{lemma}[Completeness of the enumeration]\label{lem:csp-complete}
+The backtracking search outputs every solution of the relaxed CSP.
+\end{lemma}
+\begin{proof}
+Consider any CSP solution extending the current partial assignment.  Its signature for the chosen block is viable: a disagreement on a shared edge would violate the first constraint, and using a position already owned by another edge would violate the second.  The algorithm branches over every viable signature, so one branch retains the chosen solution.  Induction on the number of unassigned blocks reaches that complete solution.  A candidate branch is rejected only when adding its signature violates a CSP constraint.  If the selected block has no viable signature, the preceding argument shows that no CSP solution can extend the current partial assignment.  Thus no solution is omitted.
+\end{proof}
+
+Two independent implementations enumerate the same relaxation.  The C++ program implements the direct search above with dynamic minimum-domain selection.  The Python program instead combines AC-3 arc consistency on shared edges, singleton propagation for the global all-different constraint, and minimum-remaining-values branching.  Their node counts are not directly comparable because the programs define and propagate a search node differently, but both return exactly the same five complete edge assignments.
+
+\begin{table}[ht]
+\centering
+\caption{Independent exhaustive enumerations of the relaxed CSP.}
+\label{tab:csp-enumeration}
+\small
+\begin{tabular}{@{}p{0.19\linewidth}p{0.49\linewidth}rr@{}}
+\toprule
+Implementation & Propagation and branching & Nodes & Solutions\\
+\midrule
+Python & AC-3 and singleton all-different propagation; \mbox{MRV} branching & 145 & 5\\
+C++ & Direct shared-edge and position checks; \mbox{MRV} branching & 1,015 & 5\\
+\bottomrule
+\end{tabular}
+\end{table}
 
 For all five, the edge permutation has cycle type
 \[
@@ -225,14 +278,14 @@ A face turn acts on edge positions as a $5$-cycle.  A $5$-cycle has sign $(-1)^{
 $\DCN\le9$.
 \end{proposition}
 \begin{proof}
-If a reachable state had distance $10$ for all $20$ targets, its edge assignment would occur among the solutions of the relaxation.  Exhaustive enumeration leaves exactly five possibilities, and all five have odd edge permutation.  The lemma excludes every one of them.  Hence every reachable state has at least one target at distance at most $9$.
+If a reachable state had distance $10$ for all $20$ targets, \cref{lem:relaxation-sound} would map it to a solution of the relaxed CSP.  By \cref{lem:csp-complete}, exhaustive enumeration leaves exactly five possibilities, and all five have odd edge permutation.  The parity lemma excludes every one of them.  Hence every reachable state has at least one target at distance at most $9$.
 \end{proof}
 
-The logical role of the computation is limited and checkable: it enumerates a finite CSP with $20$ variables and $80$ values per variable, and outputs all five solutions.  The parity exclusion itself is elementary.
+The logical role of the computation is therefore limited and explicit: it constructs the sets $S_v$, enumerates a finite CSP with $20$ variables and $80$ values per variable, and outputs all five solutions.  The mathematical reduction, the completeness argument, and the parity exclusion are contained in the text.  The artifact supplies the serialized input domains, both source implementations, machine-readable outputs, and replay commands.
 
 \section{Lower bound: a state with twenty distances equal to nine}
 
-To show that the upper bound is sharp, we provide the full cubie state $g_\star$ listed in \cref{app:witness}.  Its corner and edge permutations are both even, its corner-orientation sum is $0\pmod 3$, and its edge-orientation sum is $0\pmod 2$.  These invariants imply reachability by the characterization recalled in \cref{sec:reachability-note}.  The artifact additionally supplies an independent Schreier--Sims check: it represents the twelve face generators on the $120$ oriented cubie-position states, computes a group of order
+To show that the upper bound is sharp, we provide the full cubie state $g_\star$ listed in \cref{app:witness}.  Its corner and edge permutations are both even, its corner-orientation sum is $0\pmod 3$, and its edge-orientation sum is $0\pmod 2$.  These invariants imply reachability by the characterization recalled in \cref{sec:reachability-note}.  The artifact additionally supplies an independent Schreier--Sims check, using standard base-and-strong-generator machinery for permutation groups~\cite{seress2003}: it represents the twelve face generators on the $120$ oriented cubie-position states, computes a group of order
 \[
 \frac{20!}{2}3^{19}\,\frac{30!}{2}2^{29},
 \]
@@ -317,6 +370,13 @@ and the full regeneration is
 \end{lstlisting}
 The latter rebuilds all $20$ tables, requires the regenerated files to be byte-identical to the distributed certificates, and rechecks the ordinary coordinate-graph diameter.
 
+\paragraph{Artifact availability.}
+The maintained source and reproducibility package are publicly available at
+\begin{center}
+\url{https://github.com/AnanasClassic/megaminx_phase1_color_neutral_distance}.
+\end{center}
+The repository history identifies the source revision associated with each manuscript version, and the SHA-256 manifest binds that revision to the distributed certificates.  No repository DOI is currently assigned.
+
 \section{Acknowledgements}
 
 The author used OpenAI's ChatGPT to assist with software development, manuscript editing, and the organization of computational verification.  The author takes responsibility for all mathematical claims, computations, source references, and conclusions.
@@ -329,7 +389,7 @@ The solved coordinate of the fixed first-block phase has eccentricity $10$, but 
 
 \section{Reachability note}\label{sec:reachability-note}
 
-For completeness, the lower-bound certificate uses the following standard characterization~\cite{xu2018}.  If corners and edges are represented independently, a cubie state is reachable precisely when
+For completeness, we recall the reachability characterization used for the lower-bound certificate~\cite{xu2018}.  If corners and edges are represented independently, a cubie state is reachable precisely when
 \begin{align*}
 \operatorname{sgn}(\pi_C)&=+1,& \sum_{i=0}^{19}o_C(i)&=0\pmod 3,\\
 \operatorname{sgn}(\pi_E)&=+1,& \sum_{i=0}^{29}o_E(i)&=0\pmod 2.
@@ -371,6 +431,7 @@ Each row maps edge pieces $0,1,\ldots,29$ to positions.  Every row has cycle typ
 \item {\ttfamily\footnotesize\raggedright 29 14 25 15 26 23 18 22 24 12 7 17 20 0 28 27 8 11 21 4 9 6 10 5 16 2 19 3 1 13\par}
 \end{enumerate}
 
+\small\raggedright
 \begin{thebibliography}{99}
 
 \bibitem{botz-software}
@@ -438,6 +499,30 @@ D. Kunkle and G. Cooperman,
 \newblock ``Twenty-six moves suffice for Rubik's Cube,''
 \newblock in \emph{Proceedings of ISSAC 2007}, pages 235--242, ACM, 2007.
 \newblock \url{https://doi.org/10.1145/1277548.1277581}.
+
+\bibitem{joyner2008}
+D. Joyner,
+\newblock \emph{Adventures in Group Theory: Rubik's Cube, Merlin's Machine, and Other Mathematical Toys},
+\newblock second edition, Johns Hopkins University Press, 2008.
+\newblock \url{https://www.press.jhu.edu/books/title/9554/adventures-group-theory}.
+
+\bibitem{korf1997}
+R. E. Korf,
+\newblock ``Finding optimal solutions to Rubik's Cube using pattern databases,''
+\newblock in \emph{Proceedings of the Fourteenth National Conference on Artificial Intelligence}, pages 700--705, AAAI Press, 1997.
+\newblock \url{https://cdn.aaai.org/AAAI/1997/AAAI97-109.pdf}.
+
+\bibitem{culberson1998}
+J. C. Culberson and J. Schaeffer,
+\newblock ``Pattern databases,''
+\newblock \emph{Computational Intelligence}, 14(3):318--334, 1998.
+\newblock \url{https://doi.org/10.1111/0824-7935.00065}.
+
+\bibitem{seress2003}
+\'{A}. Seress,
+\newblock \emph{Permutation Group Algorithms},
+\newblock Cambridge Tracts in Mathematics 152, Cambridge University Press, 2003.
+\newblock \url{https://doi.org/10.1017/CBO9780511546549}.
 
 \end{thebibliography}
 
