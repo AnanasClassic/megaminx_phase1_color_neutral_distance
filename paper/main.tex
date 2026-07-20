@@ -6,11 +6,9 @@
 \usepackage{microtype}
 \usepackage[a4paper,margin=29mm]{geometry}
 \usepackage{amsmath,amssymb,amsthm,mathtools}
-\usepackage{booktabs,array,longtable}
+\usepackage{booktabs,array,tabularx}
 \usepackage{enumitem}
 \usepackage{tikz}
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage[nameinlink,capitalise,noabbrev]{cleveref}
@@ -40,6 +38,7 @@
 \newcommand{\FTM}{\mathrm{FTM}}
 \newcommand{\DCN}{D_{\mathrm{CN}}}
 \newcommand{\dCN}{d_{\mathrm{CN}}}
+\newcommand{\ArtifactCommit}{\texttt{f67b6d153016}}
 
 \title{The Exact Worst-Case Color-Neutral Distance for the First Block Phase of the Megaminx}
 \author{\PaperAuthor\\\small \PaperAffiliation\\\small \texttt{\PaperEmail}}
@@ -49,63 +48,60 @@
 \maketitle
 
 \begin{abstract}
-We study the first phase of a recently developed multi-phase Megaminx solver in the face-turn metric.  For a fixed target corner, this phase solves that corner together with its three incident edge pieces.  Its phase-coordinate graph has $11{,}692{,}800$ vertices; the maximum distance from the solved coordinate is $10$, attained by exactly $159$ vertices.  We allow the target corner to be selected adaptively among all $20$ corners of the puzzle.  An exhaustive compatibility computation shows that no reachable Megaminx state places all $20$ target blocks at distance $10$: after discarding all corner constraints, only five globally compatible edge configurations remain, and every one has odd edge-permutation parity.  Conversely, we give a reachable full state whose distance is exactly $9$ for every target corner.  Hence the worst-case color-neutral distance of this phase is exactly
+We study the first phase of a multi-phase Megaminx solver in the face-turn metric.  For a fixed target corner, the phase solves that corner together with its three incident edges.  The associated phase-coordinate graph has $11{,}692{,}800$ vertices, of which exactly $159$ lie at the maximum solved-root distance of $10$.  We allow the target corner to be selected adaptively among all $20$ corners.  An exhaustive compatibility computation shows that no reachable Megaminx state places all $20$ target blocks at distance $10$: after all corner constraints are discarded, only five globally compatible edge configurations remain, and each has odd edge-permutation parity.  Conversely, we exhibit a reachable full state whose distance is exactly $9$ for every target corner.  Therefore the exact worst-case color-neutral distance is
 \[
 \DCN=9.
 \]
-Conditional on the previously reported $114$-move face-turn bound, this one-move reduction gives the corresponding conditional bound of $113$ moves.  Source code, certificates, two independently implemented exhaustive CSP enumerators, an independent Schreier--Sims reachability verifier, and a one-command reproduction script accompany the paper.
+Conditional on the previously reported $114$-move face-turn upper bound, this gives the corresponding conditional bound of $113$ moves.  The accompanying artifact contains complete breadth-first tables, machine-readable certificates, independent Python and C++ exhaustive enumerators, two witness-layer verifiers, a direct Schreier--Sims membership audit, and one-command verification scripts.
 \end{abstract}
 
 \section{Introduction}
 
-The Megaminx is the dodecahedral analogue of the Rubik's Cube.  It has $20$ movable corner pieces and $30$ movable edge pieces, and its full state graph is far too large for direct breadth-first search.  As for the Rubik's Cube, practical upper bounds are therefore obtained by a chain of subgroup or quotient-space reductions, with a shortest-path table for each phase.  Adding the worst-case length of each phase gives a rigorous upper bound whenever every table and the terminal step have been exhaustively certified.
+The Megaminx is the dodecahedral analogue of the Rubik's Cube.  It has $20$ movable corners and $30$ movable edges, and its complete state graph is too large for direct breadth-first search.  Practical upper bounds therefore use a chain of subgroup or quotient-space reductions, with an exact table or certified terminal procedure for each phase.
 
-Botz developed and published a computational Megaminx solver based on this approach~\cite{botz-software,botz-thread}.  His shortened phase chain gives
+Botz developed a computational Megaminx solver based on this approach~\cite{botz-software,botz-thread}.  The shortened phase chain gives
 \[
 10+15+14+8+13+13+17+26=116.
 \]
-The last term comes from Whitmore's reported two-generator computation, which Botz did not independently reproduce in the thesis, so $116$ was a conditional, publicly reported face-turn bound~\cite{botz-software,botz-116}.  A forum exchange briefly suggested $117$ because one displayed table appeared to reach depth $14$; Botz later clarified that the duplicated rows were a transcription error and that the table ended at $13$, consistently with the thesis~\cite{botz-116-correction}.  Rokicki later reported $24$-move solutions for all $16$ distance-$26$ two-generator positions after admitting a third face.  Since distance-$25$ positions remained, this reduced the last-phase guarantee from $26$ to $25$ and the total from $116$ to $115$~\cite{rokicki-115}.  He then reported that all $7{,}595$ distance-$25$ positions, reduced to $1{,}199$ representatives by symmetry and inversion, are solvable in at most $24$ moves; this reduced the last-phase guarantee to $24$ and the total to $114$~\cite{rokicki-114}.  Botz later identified $114$ as the improved value~\cite{botz-114}.  These announcements are currently the public record of that bound rather than a refereed proof.
+The last contribution originated in Whitmore's reported two-generator computation and was not independently regenerated in Botz's thesis, so $116$ was a conditional public bound~\cite{botz-software,botz-116}.  A displayed depth-$14$ row was later identified as a transcription error; the corresponding phase ends at depth $13$~\cite{botz-116-correction}.  Rokicki subsequently reported $24$-move solutions, using an enlarged generator set, for all $16$ distance-$26$ positions and then for all $7{,}595$ distance-$25$ positions, reducing the reported total first to $115$ and then to $114$~\cite{rokicki-115,rokicki-114}.  Botz later referred to $114$ as the improved upper bound~\cite{botz-114}.  These announcements form the current public record of that global bound rather than a refereed reconstruction.
 
-This paper isolates and certifies one further improvement.  The original first phase chooses a fixed corner and solves the corner piece together with its three incident edges.  A human solver would naturally choose the most favorable starting corner.  We formalize that freedom and prove that it lowers the worst-case first-phase cost from $10$ to exactly $9$.
+\paragraph{Relation to prior computational work.}
+Twisty-puzzle state spaces are concrete permutation-group actions.  Joyner gives a systematic group-theoretic treatment of the Rubik's Cube and related puzzles, while Xu describes the corresponding Megaminx model~\cite{joyner2008,xu2018}.  The closest computational precedents are certified Rubik's Cube bounds: Kunkle and Cooperman obtained a $26$-move upper bound through large-scale coset computation, and Rokicki, Kociemba, Davidson, and Dethridge later proved the exact diameter $20$ using subgroup decomposition, symmetry, and exhaustive search~\cite{kunkle2007,rokicki2013}.  The fixed-target table below is also a pattern database in the sense of Korf and of Culberson and Schaeffer~\cite{korf1997,culberson1998}.  The new issue here is the compatibility of twenty overlapping phase coordinates when the target is chosen adaptively.
+
+The original first phase chooses one corner and solves that corner together with its three incident edges.  We formalize the freedom to choose the most favorable corner and prove that it reduces the exact worst-case phase cost from $10$ to $9$.
 
 The contribution is deliberately narrow:
 \begin{enumerate}
   \item we reproduce the complete fixed-target distance distribution;
-  \item we prove an exhaustive upper bound of $9$ for the adaptive, or color-neutral, phase;
-  \item we provide a reachable witness establishing the matching lower bound;
-  \item we state the resulting conditional one-move improvement to the announced global bound.
+  \item we prove the color-neutral upper bound $9$ by an exhaustive relaxed CSP and a parity obstruction;
+  \item we certify a reachable state attaining distance $9$ for all twenty targets;
+  \item we state the resulting conditional one-move improvement to the externally reported global bound.
 \end{enumerate}
-The computational proof follows a standard pattern: an expensive search produces compact certificates that are checked by small, independent programs~\cite{rokicki2013,kunkle2007}.
 
 \section{Megaminx states and metric}
 
-A Megaminx face turn cyclically permutes the five corners and five edges incident with a face.  We use the \emph{face-turn metric}: any nonzero power of a face turn, namely $72^\circ$, $144^\circ$, $216^\circ$, or $288^\circ$, has length one.  Thus each of the $12$ faces supplies four moves.
+A Megaminx face turn cyclically permutes the five corners and five edges incident with one face.  We use the \emph{face-turn metric}: each nonzero power of a face turn, namely $72^\circ$, $144^\circ$, $216^\circ$, or $288^\circ$, costs one move.  Thus the metric alphabet contains $48$ moves.
 
-We index corner pieces and corner positions by $\{0,\ldots,19\}$ and edge pieces and edge positions by $\{0,\ldots,29\}$.  Corner orientations lie in $\mathbb Z/3\mathbb Z$ and edge orientations in $\mathbb Z/2\mathbb Z$.  We use the standard reachability characterization of the Megaminx move group: a cubie assignment is reachable exactly when both the corner and edge permutations are even and the total corner and edge orientations are respectively zero modulo $3$ and $2$~\cite[Theorems 3.8 and 3.12]{xu2018}.  Equivalently, the move group has the structure
-\[
-\left((\mathbb Z/3\mathbb Z)^{19}\times(\mathbb Z/2\mathbb Z)^{29}\right)
-\rtimes\left(A_{20}\times A_{30}\right).
-\]
-Only the necessity of even edge parity is used for the upper bound; the full characterization is used to certify the lower-bound witness.
+Corner pieces and positions are indexed by $\{0,\ldots,19\}$ and edge pieces and positions by $\{0,\ldots,29\}$.  Corner orientations lie in $\mathbb Z/3\mathbb Z$ and edge orientations in $\mathbb Z/2\mathbb Z$.  Every face turn induces an even corner permutation and an even edge permutation, and preserves the total orientation sums.  The standard reachability characterization states that these conditions are also sufficient~\cite[Theorems 3.8 and 3.12]{xu2018}.  For the upper bound below, only even edge parity is needed.  Reachability of the lower-bound witness is certified directly by a separate Schreier--Sims membership computation; the usual parity and orientation conditions provide an additional consistency check.
 
 \section{The fixed-target first phase}
 
-Fix a target corner $v$ and let $e_1,e_2,e_3$ be its three incident target edge pieces.  A phase coordinate records
+Fix a target corner $v$ and let $e_1,e_2,e_3$ be its incident target edges.  A phase coordinate records
 \[
 (c,o_c,p_1,p_2,p_3,o_1,o_2,o_3),
 \]
-where $c$ and $o_c$ are the current position and orientation of the target corner and $p_i,o_i$ are the current position and orientation of target edge $e_i$.  The three edge positions are distinct.  Consequently the coordinate space has
+where $c,o_c$ are the target-corner position and orientation, and $p_i,o_i$ are the position and orientation of edge $e_i$.  Since the edge positions are distinct, the coordinate space has
 \begin{align*}
-|X|&=20\cdot 3\cdot(30\cdot29\cdot28)\cdot2^3\\
+|X|&=20\cdot3\cdot(30\cdot29\cdot28)\cdot2^3\\
 &=11{,}692{,}800
 \end{align*}
-vertices.  This agrees with the coordinate allocation and ranking formula in the public first-phase implementation~\cite{botz-12gen}.
+vertices.  This agrees with the coordinate allocation and ranking formula in the publicly available first-phase implementation~\cite{botz-12gen}.
 
-The phase-coordinate graph $\Gamma_v$ on $X$ is generated by all $48$ face-turn-metric moves.  A complete breadth-first search from the solved target coordinate gives the distribution in \cref{tab:distribution}.  Our implementation visits every coordinate exactly once.  Thus the solved coordinate has eccentricity $10$.  All $20$ target choices have the same distance distribution, and full regenerations from source produced byte-identical binary certificate files for every target.
+The phase-coordinate graph $\Gamma_v$ is generated by all $48$ FTM moves.  Complete breadth-first search from the solved target coordinate gives \cref{tab:distribution}.  Every coordinate is visited exactly once.  All twenty target choices have the same distribution, and a full regeneration from source produces certificate files byte-identical to the distributed versions.
 
 \begin{table}[ht]
 \centering
-\caption{Distance distribution for a fixed first-block target.}
+\caption{Exact distance distribution from the solved coordinate for one fixed target.}
 \label{tab:distribution}
 \begin{tabular}{@{}rr@{}}
 \toprule
@@ -128,18 +124,17 @@ Total & 11,692,800\\
 \end{tabular}
 \end{table}
 
-\begin{remark}[Cayley versus Schreier graph]
-The full Megaminx state graph is a Cayley graph of the move group, but $\Gamma_v$ is a Schreier graph for the action of that group on the phase coordinates, equivalently on cosets of the stabilizer of the tracked block.  This stabilizer is not normal, so the coordinates do not themselves form a quotient group, and the Schreier graph need not be vertex-transitive.  Here the distinction is visible: an exhaustive orbit-reduced computation gives
+\begin{remark}[Solved-root eccentricity versus graph diameter]
+The full Megaminx state graph is a Cayley graph, but $\Gamma_v$ is a Schreier graph for the action on the tracked-block coordinates.  Its stabilizer is not normal, so the coordinate space is not a quotient group and the graph need not be vertex-transitive.  Indeed, an exhaustive orbit-reduced computation gives
 \[
 \operatorname{diam}(\Gamma_v)=11,
 \]
-even though the solved coordinate has eccentricity $10$.  The computation normalizes orientations and tracked-edge labels, reduces the resulting $81{,}200$ positional roots by the $120$ spatial symmetries to $708$ orbit representatives, and runs a complete BFS from each representative.  Of these representatives, $637$ have eccentricity $10$ and $71$ have eccentricity $11$.  These counts refer to orbit representatives, not to vertices.  Source and a machine-readable result are included in the artifact.  This ordinary graph diameter is not used in the color-neutral argument below.
+whereas the solved coordinate has eccentricity $10$.  The checker normalizes orientations and tracked-edge labels, reduces $81{,}200$ positional roots by $120$ spatial symmetries to $708$ orbit representatives, and performs complete BFS from every representative.  Of these representatives, $637$ have eccentricity $10$ and $71$ have eccentricity $11$.  These are orbit-representative counts, not vertex counts.  The ordinary diameter is not used in the color-neutral proof.
 \end{remark}
 
 \begin{figure}[ht]
 \centering
 \begin{tikzpicture}[scale=0.83, every node/.style={font=\small}]
-  % Dodecahedral graph as generalized Petersen graph G(10,2).
   \foreach \i in {0,...,9} {
     \coordinate (o\i) at ({90-36*\i}:3.15);
     \coordinate (i\i) at ({90-36*\i}:1.65);
@@ -152,26 +147,21 @@ even though the solved coordinate has eccentricity $10$.  The computation normal
     \draw[gray!70] (i\i)--(i\k);
   }
   \foreach \i in {0,...,9} {
-    \fill[white] (o\i) circle (2.2pt);
-    \draw (o\i) circle (2.2pt);
-    \fill[white] (i\i) circle (2.2pt);
-    \draw (i\i) circle (2.2pt);
+    \fill[white] (o\i) circle (2.2pt); \draw (o\i) circle (2.2pt);
+    \fill[white] (i\i) circle (2.2pt); \draw (i\i) circle (2.2pt);
   }
-  \draw[very thick] (o0)--(o1);
-  \draw[very thick] (o0)--(o9);
-  \draw[very thick] (o0)--(i0);
+  \draw[very thick] (o0)--node[midway,above,sloped] {$e_1$} (o1);
+  \draw[very thick] (o0)--node[midway,above,sloped] {$e_2$} (o9);
+  \draw[very thick] (o0)--node[midway,right] {$e_3$} (i0);
   \fill (o0) circle (3.3pt) node[above=3pt] {$v$};
-  \node at (1.95,2.98) {$e_1$};
-  \node at (-1.95,2.98) {$e_2$};
-  \node at (0.32,2.1) {$e_3$};
 \end{tikzpicture}
-\caption{The dodecahedral corner-edge incidence graph.  Each of its $20$ vertices defines a possible first-block target: one corner $v$ and its three incident edges.}
+\caption{The dodecahedral graph.  Vertices represent corner positions and edges represent edge positions.  The bold three-edge star is one first-block target.}
 \label{fig:dodecahedral-graph}
 \end{figure}
 
 \section{Color-neutral distance}
 
-Let $V$ be the set of $20$ target corners.  For a reachable full state $g$, let $q_v(g)\in X_v$ be its local phase coordinate for target $v$, and let $d_v(g)$ be the graph distance of that coordinate from the solved target coordinate.  The $20$ graphs $X_v$ are mutually isomorphic under physical rotations of the dodecahedron.
+Let $V$ be the set of twenty target corners.  For a reachable full state $g$, let $q_v(g)$ be its local coordinate for target $v$ and let $d_v(g)$ be the distance from that coordinate to the solved target coordinate.
 
 \begin{definition}
 The color-neutral first-phase distance and its worst-case value are
@@ -183,79 +173,108 @@ The color-neutral first-phase distance and its worst-case value are
 where the maximum ranges over reachable full Megaminx states.
 \end{definition}
 
-Since the solved coordinate has eccentricity $10$ for every fixed target, trivially $\DCN\le10$.  The issue is whether a full state can project to a depth-$10$ coordinate for all $20$ targets simultaneously.
+Since the solved coordinate has eccentricity $10$ for every fixed target, $\DCN\le10$.  The question is whether a legal full state can lie at depth $10$ for all twenty targets simultaneously.
 
-\section{Upper bound: no simultaneous depth-$10$ state}
+\section{Upper bound: no simultaneous depth-10 state}
 
-For each target $v$, let $A_v\subset X_v$ denote its $159$ depth-$10$ coordinates.  Suppose for contradiction that a reachable full state $g$ satisfies $d_v(g)=10$ for every $v$.  Then
-\[
-q_v(g)\in A_v\quad\text{for all }v\in V.
-\]
-We now discard information and solve a relaxed compatibility problem.
+For each target $v$, let $A_v$ be its set of $159$ depth-$10$ coordinates.  Assume for contradiction that a reachable state $g$ satisfies $d_v(g)=10$ for all $v$.  Then $q_v(g)\in A_v$ for every target.
 
 \subsection{Edge-signature relaxation}
 
-Project each element of $A_v$ onto the positions and orientations of the three target edges incident with $v$, forgetting the target corner entirely.  Although $|A_v|=159$, this projection has only $80$ distinct edge signatures for every target.
+Identify each target piece with its home position in the solved labeling.  Let $E$ be the set of thirty edge pieces, let $P_E=\{0,\ldots,29\}$ be the edge positions, and let $E(v)$ be the three target edges incident with $v$.  Forgetting the target corner defines
+\[
+\sigma_v:A_v\longrightarrow
+\bigl(P_E\times\mathbb Z/2\mathbb Z\bigr)^{E(v)}.
+\]
+Its image $S_v=\sigma_v(A_v)$ contains exactly $80$ distinct edge signatures for every target, although $|A_v|=159$.
 
-Every physical target edge belongs to exactly two target blocks, one at each endpoint of the edge in \cref{fig:dodecahedral-graph}.  A globally consistent selection of one signature per block must satisfy:
+The relaxed CSP has one variable $s_v\in S_v$ per target and accepts a selection exactly when:
 \begin{enumerate}
-  \item the two endpoint blocks assign the same position and orientation to their shared target edge;
-  \item the $30$ target edge pieces occupy $30$ distinct positions.
+  \item for every dodecahedral edge $e=uv$, the endpoint signatures agree, $s_u(e)=s_v(e)$;
+  \item the thirty assigned edge positions are pairwise distinct, and hence form a permutation of $P_E$.
 \end{enumerate}
-We impose no corner constraints and no reachability constraints.  Thus every hypothetical Megaminx state whose $20$ projections all have depth $10$ gives a solution of this relaxed constraint system, but the converse need not hold.
+Corner information and all reachability constraints are discarded.
+
+\begin{lemma}[Soundness of the relaxation]\label{lem:relaxation-sound}
+If a full Megaminx state has distance $10$ for all twenty targets, then its projected signatures solve the relaxed CSP.
+\end{lemma}
+\begin{proof}
+Each local coordinate belongs to $A_v$, so its signature belongs to $S_v$.  A physical edge has one position and orientation independently of which endpoint block observes it, giving endpoint agreement.  Finally, the edge positions of a full state form a permutation.  Thus both CSP constraints hold.
+\end{proof}
 
 \subsection{Exhaustive enumeration}
 
-Two independent implementations enumerate the relaxation.  The Python implementation uses arc consistency, singleton propagation for the global all-different constraint, and minimum-remaining-values branching.  The C++ implementation performs a separate block-domain backtracking search with dynamic minimum-domain selection and explicit global edge-position ownership.  They visit $145$ and $1{,}015$ search nodes respectively and return exactly the same five configurations.
+The direct enumerator maintains a partial choice of signatures, the values assigned to shared edges, and the owner of every occupied position.  A signature is viable precisely when it agrees with all assigned shared edges and does not reuse a position already owned by another edge.
 
-For all five, the edge permutation has cycle type
-\[
-2^3 3^8,
-\]
-that is, three disjoint transpositions and eight disjoint $3$-cycles.  In particular every configuration is odd.  The five permutations, in piece-to-position notation, are included in \cref{app:five-configurations} and as machine-readable certificates.
+\begin{lstlisting}
+Search(partial assignment):
+  if all 20 blocks are assigned:
+      output the induced edge assignment; return
+  choose an unassigned block with the fewest viable signatures
+  if that block has no viable signature: return
+  for every viable signature of that block:
+      assign it; Search(partial assignment); undo it
+\end{lstlisting}
 
-\begin{lemma}
+\begin{lemma}[Completeness of the enumeration]\label{lem:csp-complete}
+The backtracking search outputs every solution of the relaxed CSP.
+\end{lemma}
+\begin{proof}
+Fix a CSP solution extending the current partial assignment.  Its value for the selected block is viable: disagreement on a shared edge violates the first constraint, and reuse of an occupied position by another edge violates the second.  Since the algorithm branches over every viable value, one branch preserves the fixed solution.  Induction on the number of unassigned blocks reaches it.  If the selected block has no viable value, no CSP solution can extend the current partial assignment.  Hence no solution is omitted.
+\end{proof}
+
+Two independent implementations enumerate the same finite problem.  The C++ implementation follows the direct search above with dynamic minimum-domain selection.  The Python implementation instead combines AC-3 consistency on shared edges, singleton propagation for the all-different constraint, and minimum-remaining-values branching.  They return the same five complete assignments.
+
+\begin{table}[ht]
+\centering
+\caption{Independent exhaustive enumerations of the relaxed CSP.}
+\label{tab:csp-enumeration}
+\small
+\begin{tabular}{@{}p{0.18\linewidth}p{0.52\linewidth}rr@{}}
+\toprule
+Implementation & Propagation and branching & Nodes & Solutions\\
+\midrule
+Python & AC-3, singleton all-different propagation, MRV & 145 & 5\\
+C++ & Direct edge/position checks, dynamic MRV & 1,015 & 5\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Every resulting edge permutation has cycle type $2^3 3^8$: three transpositions and eight $3$-cycles.  Each is therefore odd.  The five permutations are listed in \cref{app:five-configurations} and distributed as machine-readable certificates.
+
+\begin{lemma}\label{lem:edge-parity}
 Every reachable Megaminx state has an even edge permutation.
 \end{lemma}
 \begin{proof}
-A face turn acts on edge positions as a $5$-cycle.  A $5$-cycle has sign $(-1)^{5-1}=+1$, so every generator is even.  Products of the generators are therefore even.
+A face turn acts on edges as a $5$-cycle, whose sign is $(-1)^{5-1}=+1$.  Every generator and hence every product of generators is even.
 \end{proof}
 
 \begin{proposition}\label{prop:upper}
 $\DCN\le9$.
 \end{proposition}
 \begin{proof}
-If a reachable state had distance $10$ for all $20$ targets, its edge assignment would occur among the solutions of the relaxation.  Exhaustive enumeration leaves exactly five possibilities, and all five have odd edge permutation.  The lemma excludes every one of them.  Hence every reachable state has at least one target at distance at most $9$.
+A reachable state at depth $10$ for all targets would yield a relaxed-CSP solution by \cref{lem:relaxation-sound}.  The complete enumeration of \cref{lem:csp-complete} leaves exactly five possibilities, all with odd edge permutation, contradicting \cref{lem:edge-parity}.  Therefore every reachable state has at least one target at distance at most $9$.
 \end{proof}
 
-The logical role of the computation is limited and checkable: it enumerates a finite CSP with $20$ variables and $80$ values per variable, and outputs all five solutions.  The parity exclusion itself is elementary.
+\section{Lower bound: a reachable state with twenty distances equal to nine}
 
-\section{Lower bound: a state with twenty distances equal to nine}
-
-To show that the upper bound is sharp, we provide the full cubie state $g_\star$ listed in \cref{app:witness}.  Its corner and edge permutations are both even, its corner-orientation sum is $0\pmod 3$, and its edge-orientation sum is $0\pmod 2$.  These invariants imply reachability by the characterization recalled in \cref{sec:reachability-note}.  The artifact additionally supplies an independent Schreier--Sims check: it represents the twelve face generators on the $120$ oriented cubie-position states, computes a group of order
+Let $g_\star$ be the full cubie state in \cref{app:witness}.  Its reachability is certified directly as follows.  An independent verifier represents the twelve face generators as permutations of $120$ oriented cubie-position states, constructs the generated group by Schreier--Sims, obtains order
 \[
 \frac{20!}{2}3^{19}\,\frac{30!}{2}2^{29},
 \]
-verifies that this equals the full invariant-compatible state count, and directly confirms that the permutation representing $g_\star$ belongs to the generated group.
+and confirms that the permutation representing $g_\star$ belongs to this group.  As an independent consistency check, the witness also has even corner and edge permutations and zero total corner and edge orientations.
 
-For each target $v$, two independently written witness verifiers form $q_v(g_\star)$ and check two sorted certificate sets generated by the complete BFS:
-\begin{enumerate}
-  \item $q_v(g_\star)$ occurs in the union of the depth-$9$ and depth-$10$ layers;
-  \item $q_v(g_\star)$ does not occur in the depth-$10$ layer.
-\end{enumerate}
-Therefore $d_v(g_\star)=9$ for every one of the $20$ targets.  The resulting distance vector is
+For each target $v$, two separately written verifiers form $q_v(g_\star)$ and check that it occurs in the union of the depth-$9$ and depth-$10$ certificate sets but not in the depth-$10$ set.  Consequently
 \[
-(9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9).
+(d_v(g_\star))_{v\in V}=(9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9).
 \]
 
 \begin{proposition}\label{prop:lower}
 $\DCN\ge9$.
 \end{proposition}
 \begin{proof}
-The reachable witness $g_\star$ satisfies $\dCN(g_\star)=9$.
+The directly certified reachable witness $g_\star$ satisfies $\dCN(g_\star)=9$.
 \end{proof}
-
-Combining \cref{prop:upper,prop:lower} gives the main result.
 
 \begin{theorem}\label{thm:main}
 The exact worst-case color-neutral distance of the first corner-block phase is
@@ -263,51 +282,52 @@ The exact worst-case color-neutral distance of the first corner-block phase is
 \boxed{\DCN=9}.
 \]
 \end{theorem}
+\begin{proof}
+Combine \cref{prop:upper,prop:lower}.
+\end{proof}
 
 \section{Consequence for the global upper bound}
 
-The adaptive target does not add a physical move.  It selects a reference frame.  Let
+Choosing the target does not add a physical move; it selects a reference frame.  Let
 \[
 G=G_0\supset G_1\supset\cdots\supset G_k=\{1\}
 \]
-be a canonical phase chain whose first target is one fixed corner block.  If a rotation $\rho$ maps the canonical target to another target $v$, then
-\[
-G_i^{(v)}=\rho G_i\rho^{-1}
-\]
-is a conjugate phase chain.  Physical rotations permute the $12$ face generators and preserve face-turn length, so every phase worst-case bound and every terminal worst-case guarantee is unchanged under this conjugation.
-
-Thus, for each input state, one may select a target $v$ attaining $\dCN(g)$, use at most nine moves for the first phase, and continue through the correspondingly relabelled chain with exactly the same bounds as before.
+be a canonical phase chain whose first target is one fixed corner block.  If a physical rotation $\rho$ maps that block to a target $v$, then $G_i^{(v)}=\rho G_i\rho^{-1}$ is a conjugate chain.  Rotations permute the twelve face generators and preserve FTM length, so all later worst-case guarantees are unchanged.
 
 \begin{corollary}[Conditional on the reported $114$-move computation]\label{cor:113}
-If the external computations underlying the reported $114$-move face-turn upper bound for the eight-phase construction are valid, then the same construction with the color-neutral first phase gives the conditional bound
+If the external computations underlying the reported $114$-move FTM upper bound are valid under the same move convention and phase-chain semantics, then
 \[
-\operatorname{diam}_{\FTM}(\text{Megaminx})\le 113.
+\operatorname{diam}_{\FTM}(\mathrm{Megaminx})\le113.
 \]
 \end{corollary}
 \begin{proof}
-In the announced construction, the fixed first phase contributes $10$ moves.  By \cref{thm:main} it can be replaced by its color-neutral version, which contributes at most $9$, while rotational conjugacy preserves all later phase guarantees.  Hence $114-1=113$.
+Select a target attaining $\dCN(g)$, solve the first phase in at most nine moves by \cref{thm:main}, and continue through the conjugated chain.  This replaces the fixed first-phase contribution $10$ by $9$ while preserving every later contribution, giving $114-1=113$.
 \end{proof}
 
-\begin{remark}
-The accompanying artifact independently verifies the new first-phase result but does not re-run the much larger computations underlying the reported $114$-move bound.  Accordingly, the number $113$ is a conditional consequence of that external computation, whereas \cref{thm:main} is independently certified here.
-\end{remark}
+The theorem $\DCN=9$ is independently certified by the accompanying artifact.  The number $113$ remains conditional because the artifact does not regenerate the much larger external computation underlying the reported $114$-move bound.
 
-\section{Reproducibility}
+\section{Reproducibility and proof boundary}
 
-The artifact contains:
-\begin{itemize}
-  \item an independent C++ implementation of the phase coordinate and all $12$ face moves;
-  \item a complete BFS generator for all $20$ target blocks;
-  \item an orbit-reduced exhaustive checker for the ordinary coordinate-graph diameter;
-  \item the $20$ depth-$10$ sets and the $20$ top-two-layer sets;
-  \item independent Python and C++ exhaustive CSP solvers;
-  \item the full-state lower-bound witness, two layer-membership verifiers, and an independent Schreier--Sims group-membership verifier;
-  \item byte-level checksums and one-command scripts for quick verification and full regeneration.
-\end{itemize}
+The proof package contains complete tables and compact certificates rather than relying on heuristic search.  \Cref{tab:evidence} summarizes the dependency of each claim.
 
-On the audit machine, a single target table was generated in approximately $5$--$6$ seconds using about $65$ MiB of memory.  The four-worker full regeneration remained below $300$ MiB.  These timings are informative only; the proof depends on the deterministic output and certificate checks, not on performance.
+\begin{table}[ht]
+\centering
+\caption{Claim-to-evidence map.}
+\label{tab:evidence}
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}X p{0.25\textwidth}@{}}
+\toprule
+Claim & Primary evidence & Verification route\\
+\midrule
+Fixed-target distribution & Twenty complete BFS tables & Coordinate/move self-tests and byte-identical regeneration\\
+Ordinary diameter $11$ & Complete BFS from all $708$ symmetry-orbit representatives & Orbit-generation audit and machine-readable result\\
+Upper bound $\DCN\le9$ & Twenty serialized depth-$10$ domains and five exhaustive CSP solutions & Independent Python and C++ enumerators; parity replay\\
+Lower bound $\DCN\ge9$ & Full witness and top-two-layer/depth-$10$ membership certificates & Two layer verifiers and direct Schreier--Sims membership\\
+\bottomrule
+\end{tabularx}
+\end{table}
 
-The quick check is
+The quick audit is
 \begin{lstlisting}
 ./scripts/quick_verify.sh
 \end{lstlisting}
@@ -315,45 +335,56 @@ and the full regeneration is
 \begin{lstlisting}
 ./scripts/reproduce.sh
 \end{lstlisting}
-The latter rebuilds all $20$ tables, requires the regenerated files to be byte-identical to the distributed certificates, and rechecks the ordinary coordinate-graph diameter.
+The latter rebuilds all twenty tables, requires all generated binary certificates to be byte-identical to the distributed versions, reruns both CSP enumerators, verifies the witness, and rechecks the ordinary coordinate-graph diameter.  Neural models and heuristic search are not part of the proof base.
 
-\section{Acknowledgements}
-
-The author used OpenAI's ChatGPT to assist with software development, manuscript editing, and the organization of computational verification.  The author takes responsibility for all mathematical claims, computations, source references, and conclusions.
+\paragraph{Artifact availability.}
+The maintained repository is
+\begin{center}
+\url{https://github.com/AnanasClassic/megaminx_phase1_color_neutral_distance}.
+\end{center}
+The proof code and certificates used for this manuscript are pinned at computational-artifact revision \ArtifactCommit:
+\begin{center}
+\url{https://github.com/AnanasClassic/megaminx_phase1_color_neutral_distance/tree/f67b6d1530166eba37cd8ee0a3161d4b4e3f14ac}.
+\end{center}
+The repository-level \texttt{checksums.sha256} manifest binds that revision to every distributed certificate and verifier.  No DOI has been assigned at the time of writing.
 
 \section{Conclusion}
 
-The solved coordinate of the fixed first-block phase has eccentricity $10$, but its depth-$10$ set is too sparse and too incompatible across the $20$ possible targets to occur simultaneously in a legal full state.  A relaxed edge-only CSP reduces all putative counterexamples to five configurations, and an edge-parity invariant excludes all five.  A legal state at distance $9$ from every target proves sharpness.  Therefore the exact worst-case color-neutral first-phase distance is $9$.  Conditional on the previously reported $114$-move computation, this yields the corresponding one-move reduction to $113$.
+The solved coordinate of the fixed first-block phase has eccentricity $10$, but the twenty depth-$10$ constraints are mutually incompatible in every reachable full state.  A relaxed edge-only CSP leaves five candidates, all excluded by edge parity.  A directly certified reachable state at distance $9$ from every target proves sharpness.  Hence the exact color-neutral first-phase distance is $9$.  Conditional on the external $114$-move computation, this lowers the corresponding global bound to $113$.
+
+\section*{Acknowledgements and disclosure}
+
+The author used OpenAI's ChatGPT for software-development assistance, manuscript editing, and organization of computational verification.  The author takes responsibility for all mathematical claims, computations, source references, and conclusions.
 
 \appendix
 
-\section{Reachability note}\label{sec:reachability-note}
+\section{Reachability consistency conditions}\label{sec:reachability-note}
 
-For completeness, the lower-bound certificate uses the following standard characterization~\cite{xu2018}.  If corners and edges are represented independently, a cubie state is reachable precisely when
+The standard cubie-coordinate characterization states that a state is reachable precisely when
 \begin{align*}
-\operatorname{sgn}(\pi_C)&=+1,& \sum_{i=0}^{19}o_C(i)&=0\pmod 3,\\
-\operatorname{sgn}(\pi_E)&=+1,& \sum_{i=0}^{29}o_E(i)&=0\pmod 2.
+\operatorname{sgn}(\pi_C)&=+1,& \sum_{i=0}^{19}o_C(i)&=0\pmod3,\\
+\operatorname{sgn}(\pi_E)&=+1,& \sum_{i=0}^{29}o_E(i)&=0\pmod2.
 \end{align*}
-Necessity follows immediately from the action of one face turn.  Sufficiency follows by generating arbitrary corner and edge $3$-cycles and arbitrary paired corner twists and paired edge flips; these generate $A_{20}$, $A_{30}$, $(\mathbb Z/3\mathbb Z)^{19}$, and $(\mathbb Z/2\mathbb Z)^{29}$ respectively.  The distributed layer-membership verifiers check all four conditions for $g_\star$.  Independently, the Schreier--Sims verifier constructs the group generated by the twelve face turns on oriented cubie-position states, checks that its order equals the invariant-compatible state count above, and tests $g_\star$ for group membership directly.
+The witness satisfies all four conditions.  The lower-bound proof does not depend solely on this cited characterization: direct membership of the witness in the group generated by the twelve face turns is checked independently by Schreier--Sims, together with equality of the computed group order and the invariant-compatible state count.
 
 \section{Lower-bound witness}\label{app:witness}
 
-The arrays below map each piece index to its occupied position.  Orientations are indexed by piece in the same order.
+The arrays map each piece index to its occupied position; orientations are indexed by piece.
 
-\noindent\textbf{Corner piece to position.}\par
+\noindent\textbf{Corner piece to position.}
 \begin{lstlisting}
 18 19 11 13 8 1 2 0 5 7 12 3 6 10 17 4 16 9 14 15
 \end{lstlisting}
-\noindent\textbf{Corner orientation.}\par
+\noindent\textbf{Corner orientation.}
 \begin{lstlisting}
 0 1 0 1 0 1 0 0 0 2 2 2 1 1 2 0 0 2 0 0
 \end{lstlisting}
-\noindent\textbf{Edge piece to position.}\par
+\noindent\textbf{Edge piece to position.}
 \begin{lstlisting}
 3 18 10 6 29 13 22 25 17 23 11 28 14 16 24
 9 27 19 20 1 12 8 0 21 5 4 7 15 2 26
 \end{lstlisting}
-\noindent\textbf{Edge orientation.}\par
+\noindent\textbf{Edge orientation.}
 \begin{lstlisting}
 1 1 1 0 1 0 0 0 0 1 0 1 0 0 1
 0 0 1 1 0 1 1 1 1 1 0 0 0 1 1
@@ -371,6 +402,7 @@ Each row maps edge pieces $0,1,\ldots,29$ to positions.  Every row has cycle typ
 \item {\ttfamily\footnotesize\raggedright 29 14 25 15 26 23 18 22 24 12 7 17 20 0 28 27 8 11 21 4 9 6 10 5 16 2 19 3 1 13\par}
 \end{enumerate}
 
+\small\raggedright
 \begin{thebibliography}{99}
 
 \bibitem{botz-software}
@@ -439,6 +471,29 @@ D. Kunkle and G. Cooperman,
 \newblock in \emph{Proceedings of ISSAC 2007}, pages 235--242, ACM, 2007.
 \newblock \url{https://doi.org/10.1145/1277548.1277581}.
 
-\end{thebibliography}
+\bibitem{joyner2008}
+D. Joyner,
+\newblock \emph{Adventures in Group Theory: Rubik's Cube, Merlin's Machine, and Other Mathematical Toys},
+\newblock second edition, Johns Hopkins University Press, 2008.
+\newblock \url{https://www.press.jhu.edu/books/title/9554/adventures-group-theory}.
 
+\bibitem{korf1997}
+R. E. Korf,
+\newblock ``Finding optimal solutions to Rubik's Cube using pattern databases,''
+\newblock in \emph{Proceedings of the Fourteenth National Conference on Artificial Intelligence}, pages 700--705, AAAI Press, 1997.
+\newblock \url{https://cdn.aaai.org/AAAI/1997/AAAI97-109.pdf}.
+
+\bibitem{culberson1998}
+J. C. Culberson and J. Schaeffer,
+\newblock ``Pattern databases,''
+\newblock \emph{Computational Intelligence}, 14(3):318--334, 1998.
+\newblock \url{https://doi.org/10.1111/0824-7935.00065}.
+
+\bibitem{seress2003}
+\'{A}. Seress,
+\newblock \emph{Permutation Group Algorithms},
+\newblock Cambridge Tracts in Mathematics 152, Cambridge University Press, 2003.
+\newblock \url{https://doi.org/10.1017/CBO9780511546549}.
+
+\end{thebibliography}
 \end{document}
