@@ -2,15 +2,14 @@
 
 ## 1. Coordinate
 
-One target block consists of one corner piece and its three incident edge
-pieces. A coordinate records:
+One target block contains one corner and its three incident edges. A coordinate records:
 
 - corner position: 20 values;
 - corner orientation: 3 values;
-- ordered distinct edge positions: 30 x 29 x 28 values;
-- three edge orientations: 2^3 values.
+- ordered distinct edge positions: `30 x 29 x 28` values;
+- three edge orientations: `2^3` values.
 
-Therefore the coordinate has
+Hence the coordinate space has
 
 ```text
 20 * 3 * 30 * 29 * 28 * 8 = 11,692,800
@@ -20,7 +19,7 @@ states.
 
 ## 2. Binary certificate format
 
-Every `phase1_antipodes_block_N.bin` or `phase1_top2_block_N.bin` has:
+Each `phase1_antipodes_block_N.bin` and `phase1_top2_block_N.bin` contains:
 
 ```text
 uint32 little-endian record_count
@@ -28,7 +27,7 @@ uint8[3] incident_edge_piece_indices
 record[record_count]
 ```
 
-Each record is six bytes:
+Each six-byte record contains:
 
 ```text
 uint8 corner_position
@@ -39,26 +38,20 @@ uint8 edge_position_2
 uint8 edge_orientation_bits
 ```
 
-The records are sorted by the coordinate rank implemented in
-`phase1_common.hpp`.
+Records are sorted by the rank implemented in `src/phase1_common.hpp`.
 
-Expected counts:
+Expected counts per target:
 
 ```text
-antipodes: 159 records per target
-upper two layers: 364,616 records per target
+depth 10:       159 records
+depths 9 or 10: 364,616 records
 ```
 
-These are distances from the solved target coordinate. In particular, 10 is
-the eccentricity of that coordinate, not the ordinary graph diameter.
-The certificate filenames retain `antipodes` as shorthand for the vertices
-furthest from this solved root.
+The value 10 is the eccentricity of the solved target coordinate, not the ordinary graph diameter.
 
-## 3. Fixed-target BFS output
+## 3. Fixed-target distribution
 
-Expected distribution:
-
-| depth | states |
+| Depth | States |
 |---:|---:|
 | 0 | 1 |
 | 1 | 12 |
@@ -72,21 +65,15 @@ Expected distribution:
 | 9 | 364,457 |
 | 10 | 159 |
 
-The total must be 11,692,800.
+The total is 11,692,800.
 
 ## 4. Ordinary coordinate-graph diameter
 
-The full coordinate graph is a Schreier graph rather than a Cayley graph. Its
-ordinary diameter is checked separately:
-
 ```bash
-./scripts/verify_coordinate_diameter.sh
+make diameter
 ```
 
-The script normalizes the orientation coordinates and the three tracked-edge
-labels, enumerates 81,200 positional roots, and reduces them by 120 spatial
-symmetries to 708 orbit representatives. A complete BFS from every
-representative must produce:
+The checker normalizes orientation coordinates and labels of the three tracked edges, enumerates 81,200 positional roots, and reduces them by 120 spatial symmetries to 708 orbit representatives. Complete BFS from every representative must report:
 
 ```text
 eccentricity_10=637
@@ -94,28 +81,29 @@ eccentricity_11=71
 exact_diameter=11
 ```
 
-The eccentricity counts are counts of orbit representatives, not weighted
-vertex counts. The expected machine-readable result is stored in
-`certificates/coordinate_diameter.json`.
+The eccentricity counts refer to orbit representatives, not weighted vertex counts.
 
-## 5. Independent reachability audit
+## 5. Direct witness-reachability audit
 
-The lower-bound witness is checked directly for membership in the face-turn
-group using Schreier--Sims on 120 oriented cubie-position states. This verifier
-requires SymPy 1.14:
+The lower-bound witness is checked directly for membership in the face-turn group using Schreier-Sims on 120 oriented cubie-position states:
 
 ```bash
 python3 -m pip install -r requirements-audit.txt
 python3 src/verify_reachability_group.py --certificates certificates
 ```
 
-It must report that the computed group order equals
-`(20!/2) * 3^19 * (30!/2) * 2^29` and that the witness is a member.
+The verifier must compute group order
+
+```text
+(20!/2) * 3^19 * (30!/2) * 2^29
+```
+
+and confirm membership of the witness. The parity and orientation invariants are checked separately as consistency controls.
 
 ## 6. Quick verification
 
 ```bash
-./scripts/quick_verify.sh
+make test
 ```
 
 Expected final line:
@@ -124,14 +112,12 @@ Expected final line:
 QUICK VERIFICATION COMPLETE
 ```
 
-The Python and C++ solvers use different search implementations and must return
-identical lexicographically ordered lists of five global edge configurations.
-Every configuration must have cycle type `2^3 3^8` and odd parity.
+The Python and C++ upper-bound solvers must return identical lexicographically ordered lists of five global edge assignments. Every assignment has cycle type `2^3 3^8` and odd parity. Two witness verifiers must return twenty distances equal to 9, and the direct group-membership audit must pass.
 
 ## 7. Full regeneration
 
 ```bash
-./scripts/reproduce.sh
+make reproduce
 ```
 
 Expected final line:
@@ -140,29 +126,46 @@ Expected final line:
 FULL REPRODUCTION COMPLETE
 ```
 
-The script compiles the generator, launches four workers, compares all 40
-generated binary files with the distributed certificates, reruns both CSP
-solvers, verifies the witness against the regenerated tables, and rechecks the
-ordinary coordinate-graph diameter.
+The script compiles the generators, rebuilds all 20 tables, compares all 40 generated binary files byte-for-byte with the distributed certificates, reruns both CSP solvers, verifies the witness against regenerated tables, and rechecks the ordinary diameter.
 
-## 8. Build the forthcoming manuscript
+## 8. Build the manuscript
 
-Requirements: pdfLaTeX with TikZ, cleveref, listings, booktabs, microtype, and
-Latin Modern fonts.
+Required LaTeX packages include TikZ, cleveref, listings, booktabs, tabularx, microtype, and Latin Modern fonts.
 
 ```bash
-./scripts/build_paper.sh
+make paper
 ```
 
-The output is `release/megaminx_phase1_preprint.pdf`.
+Output:
 
-## 9. Platform audited
+```text
+release/megaminx_phase1_preprint.pdf
+```
 
-- Date: 2026-07-13
+The build script rejects undefined references and overfull boxes. The publication-polished source builds to nine A4 pages in the audited environment and was visually inspected page by page.
+
+## 9. Immutable computational artifact
+
+The proof code and certificates used by the publication-polished manuscript are pinned at:
+
+```text
+f67b6d1530166eba37cd8ee0a3161d4b4e3f14ac
+```
+
+Immutable URL:
+
+```text
+https://github.com/AnanasClassic/megaminx_phase1_color_neutral_distance/tree/f67b6d1530166eba37cd8ee0a3161d4b4e3f14ac
+```
+
+Later commits in PR #1 modify the presentation and metadata only. The complete current tree is bound by `checksums.sha256`. No DOI has been assigned.
+
+## 10. Audited platform
+
 - Linux x86_64
 - GCC 13.3.0
 - Python 3.12.13
+- SymPy 1.14.0
 - pdfTeX 1.40.25 / TeX Live 2023
 
-The BFS and CSP code uses only the C++ and Python standard libraries. The
-independent Schreier--Sims reachability audit additionally uses SymPy 1.14.0.
+The BFS and CSP implementations use only the C++ and Python standard libraries. SymPy is required only for the independent group-membership audit.
