@@ -2,7 +2,7 @@
 
 ## Scope
 
-This audit covers the independently certified statement
+This audit covers the exact statement
 
 ```text
 The worst-case color-neutral distance of the first corner-block phase is exactly 9.
