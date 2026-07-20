@@ -16,7 +16,7 @@ D_CN = 9.
 
 The upper bound is established by exhaustive compatibility enumeration of the 20 depth-10 sets. After all corner constraints are discarded, exactly five global edge assignments remain, and all five have odd edge-permutation parity. The lower bound is certified by a reachable full cubie state whose 20 target distances are all 9.
 
-Conditional on the externally reported 114-move FTM upper bound, replacing the fixed first-phase contribution 10 by the exact color-neutral value 9 gives the corresponding conditional value 113. This repository independently certifies the phase-1 result; it does not reproduce the much larger computation underlying 114.
+Conditional on the externally reported 114-move FTM upper bound, replacing the fixed first-phase contribution 10 by the exact color-neutral value 9 gives the corresponding conditional value 113. This repository certifies the phase-1 result; it does not reproduce the much larger computation underlying 114.
 
 ## Author
 
@@ -26,10 +26,10 @@ Conditional on the externally reported 114-move FTM upper bound, replacing the f
 
 ## Proof objects
 
-| Claim | Evidence | Independent check |
+| Claim | Primary evidence | Verification route |
 |---|---|---|
 | Fixed-target distribution | 20 complete BFS tables | Coordinate/move self-tests and byte-identical regeneration |
-| Ordinary diameter 11 | BFS from 708 symmetry-orbit representatives | Machine-readable orbit report |
+| Ordinary diameter 11 | Complete BFS from 708 symmetry-orbit representatives | Orbit-generation audit and machine-readable result |
 | Upper bound `D_CN <= 9` | Serialized depth-10 domains and five complete relaxed-CSP solutions | Independent Python and C++ exhaustive enumerators; parity check |
 | Lower bound `D_CN >= 9` | Full cubie witness and layer-membership certificates | Two layer verifiers and direct Schreier-Sims group membership |
 
