@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this computational artifact, please cite the accompanying manuscript and this repository."
+title: "Exact Worst-Case Color-Neutral Distance for Megaminx Phase 1: Computational Artifact"
+type: software
+authors:
+  - family-names: Kuznetsov
+    given-names: Vladislav
+    email: vladkuznecov266@gmail.com
+    affiliation: "Moscow Institute of Physics and Technology (MIPT)"
+version: "1.0-preprint"
+date-released: 2026-07-20
+repository-code: "https://github.com/AnanasClassic/megaminx_phase1_color_neutral_distance"
+url: "https://github.com/AnanasClassic/megaminx_phase1_color_neutral_distance/tree/f67b6d1530166eba37cd8ee0a3161d4b4e3f14ac"
+license: CC-BY-NC-4.0
+preferred-citation:
+  type: article
+  title: "The Exact Worst-Case Color-Neutral Distance for the First Block Phase of the Megaminx"
+  authors:
+    - family-names: Kuznetsov
+      given-names: Vladislav
+      email: vladkuznecov266@gmail.com
+      affiliation: "Moscow Institute of Physics and Technology (MIPT)"
+  year: 2026
+  month: 7
